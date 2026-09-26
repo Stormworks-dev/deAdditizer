@@ -146,6 +146,10 @@ export const bcPreservedWithScComponents = new Set([
   "wing_medium",
   "wing_small",
   "wing_xl",
+  "fan_small",
+  "fan_large",
+  "jet_engine_intake_large",
+  "jet_engine_intake_small",
 ]);
 
 export const scRemovableComponents = new Set([

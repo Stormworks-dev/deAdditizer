@@ -460,10 +460,6 @@ function processObject(xml, objectStart, objectEnd, componentEnd, componentId) {
     }
   }
 
-  // BC safety:
-  // - Multiple BC attributes are always preserved.
-  // - A single BC is removed only when the component is not in
-  //   bcPreservedWithScComponents and has a non-numeric SC.
   if (
     scPresent &&
     !scNumeric &&
