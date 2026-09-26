@@ -341,7 +341,10 @@ function isEmptyLogicSlots(xml, start, end) {
 
 function processObject(xml, objectStart, objectEnd, componentEnd, componentId) {
   const removals = [];
-  const bcRanges = [];
+  const rRanges = [];
+
+  let bcCount = 0;
+  let bcRange = null;
 
   let scPresent = false;
   let scNumeric = false;
@@ -412,13 +415,16 @@ function processObject(xml, objectStart, objectEnd, componentEnd, componentId) {
         blocksChanged++;
       }
     } else if (matches(xml, nameStart, nameEnd, "r")) {
-      if (
-        (isDefaultRotation(xml, valueStart, valueEnd) &&
-          defaultRotationRemovableComponents.has(componentId)) ||
-        (isPureRotation(xml, valueStart, valueEnd) &&
-          (componentId === null || nonRotatingComponents.has(componentId)))
-      ) {
-        addRemoval(removals, attrStart, attrEnd);
+      const removableDefaultRotation =
+        isDefaultRotation(xml, valueStart, valueEnd) &&
+        defaultRotationRemovableComponents.has(componentId);
+
+      const removablePureRotation =
+        isPureRotation(xml, valueStart, valueEnd) &&
+        (componentId === null || nonRotatingComponents.has(componentId));
+
+      if (removableDefaultRotation || removablePureRotation) {
+        rRanges.push(attrStart, attrEnd);
       }
     } else if (matches(xml, nameStart, nameEnd, "sc")) {
       scPresent = true;
@@ -428,7 +434,11 @@ function processObject(xml, objectStart, objectEnd, componentEnd, componentId) {
         addRemoval(removals, attrStart, attrEnd);
       }
     } else if (isBcAttribute(xml, nameStart, nameEnd)) {
-      bcRanges.push(attrStart, attrEnd);
+      bcCount++;
+
+      if (bcCount === 1) {
+        bcRange = [attrStart, attrEnd];
+      }
     } else if (matches(xml, nameStart, nameEnd, "name")) {
       if (matches(xml, valueStart, valueEnd, "Microcontroller")) {
         addRemoval(removals, attrStart, attrEnd);
@@ -444,15 +454,21 @@ function processObject(xml, objectStart, objectEnd, componentEnd, componentId) {
     }
   }
 
+  if (!scPresent || scNumeric) {
+    for (let i = 0; i < rRanges.length; i += 2) {
+      addRemoval(removals, rRanges[i], rRanges[i + 1]);
+    }
+  }
+
   if (
     scPresent &&
     !scNumeric &&
     !scRemovableComponents.has(componentId) &&
+    bcCount === 1 &&
+    bcRange !== null &&
     !bcPreservedWithScComponents.has(componentId)
   ) {
-    for (let i = 0; i < bcRanges.length; i += 2) {
-      addRemoval(removals, bcRanges[i], bcRanges[i + 1]);
-    }
+    addRemoval(removals, bcRange[0], bcRange[1]);
   }
 
   cursor = objectEnd + 1;
